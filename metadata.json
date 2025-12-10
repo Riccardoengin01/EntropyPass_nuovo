@@ -1,0 +1,5 @@
+{
+  "name": "EntropyPass",
+  "description": "Engineering-Grade Password Generator & Security Suite. Features real-time entropy estimation, AI-driven analysis, and secure client-side generation.",
+  "requestFramePermissions": []
+}
