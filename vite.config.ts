@@ -4,17 +4,28 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
-  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
-  // Cast process to any to avoid "Property 'cwd' does not exist on type 'Process'" TS error
+  // Cast process to any to avoid TypeScript error "Property 'cwd' does not exist on type 'Process'"
   const env = loadEnv(mode, (process as any).cwd(), '');
+
+  // Prioritize VITE_API_KEY, then API_KEY.
+  // We explicitly check process.env as well to ensure we capture variables injected 
+  // by CI/CD platforms (like Netlify) even if loadEnv misses them.
+  const apiKey = env.VITE_API_KEY || env.API_KEY || process.env.VITE_API_KEY || process.env.API_KEY || "";
+
+  // Log status during build (visible in Netlify Build Logs)
+  if (!apiKey) {
+    console.warn("⚠️  WARNING: API_KEY is empty or undefined during build. Gemini features will not work.");
+  } else {
+    console.log("✅  API_KEY detected during build. Injecting into client.");
+  }
 
   return {
     plugins: [react()],
     define: {
-      // This is crucial: it replaces 'process.env.API_KEY' in your code 
-      // with the actual value from Vercel's environment variables during build.
-      'process.env.API_KEY': JSON.stringify(env.API_KEY),
-      // Polyfill process.env for other potential uses (though mostly needed for the key)
+      // Use JSON.stringify(apiKey) so it becomes a string literal "AIza..." or "" in the code.
+      // This prevents "undefined" token issues or "process is not defined" at runtime.
+      'process.env.API_KEY': JSON.stringify(apiKey),
+      // Polyfill process.env to avoid "process is not defined" errors in browser contexts
       'process.env': {} 
     },
   };
